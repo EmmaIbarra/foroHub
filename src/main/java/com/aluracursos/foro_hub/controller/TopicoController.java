@@ -1,17 +1,22 @@
 package com.aluracursos.foro_hub.controller;
 
+import com.aluracursos.foro_hub.domain.TopicoNoEncontradoException;
 import com.aluracursos.foro_hub.domain.ValidacionException;
 import com.aluracursos.foro_hub.domain.topico.*;
+import com.aluracursos.foro_hub.infra.errores.TratadorDeErrores;
+import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.util.Optional;
 
 @RestController
 @RequestMapping("/topicos")
@@ -62,16 +67,47 @@ public class TopicoController {
 
     @GetMapping("/{id}")
     public ResponseEntity<DatosRespuestaTopico> retornaDatosTopico(@PathVariable Long id) {
-        Topico topico = topicoRepository.getReferenceById(id);
-        var datosTopico = new DatosRespuestaTopico(
-                topico.getId(),
-                topico.getTitulo(),
-                topico.getMensaje(),
-                topico.getFechaDeCreacion(),
-                topico.getStatus(),
-                topico.getAutor(),
-                topico.getCurso());
-        return ResponseEntity.ok(datosTopico);
+        Optional<Topico> topicoOpt = topicoRepository.findById(id);
+
+        if (topicoOpt.isPresent()) {
+            Topico topico = topicoOpt.get();
+            var datosTopico = new DatosRespuestaTopico(
+                    topico.getId(),
+                    topico.getTitulo(),
+                    topico.getMensaje(),
+                    topico.getFechaDeCreacion(),
+                    topico.getStatus(),
+                    topico.getAutor(),
+                    topico.getCurso());
+            return ResponseEntity.ok(datosTopico);
+        }
+
+        // Lanza una excepción si el tópico no se encuentra
+        throw new TopicoNoEncontradoException("El tópico con ID " + id + " no fue encontrado.");
+    }
+
+    @PutMapping("/{id}")
+    @Transactional
+    public ResponseEntity<DatosRespuestaTopico> actualizarTopico(@PathVariable Long id,
+                                                                 @RequestBody @Valid
+                                                                 DatosActualizarTopico datosActualizarTopico) {
+        Optional<Topico> topicoOpt = topicoRepository.findById(id);
+
+        if (topicoOpt.isPresent()) {
+            Topico topico = topicoOpt.get();
+            topico.actualizarDatos(datosActualizarTopico);
+            return ResponseEntity.ok(new DatosRespuestaTopico(
+                    topico.getId(),
+                    topico.getTitulo(),
+                    topico.getMensaje(),
+                    topico.getFechaDeCreacion(),
+                    topico.getStatus(),
+                    topico.getAutor(),
+                    topico.getCurso()
+            ));
+        }
+
+        throw new TopicoNoEncontradoException("El tópico con ID " + id + " no fue encontrado.");
     }
 
 }
