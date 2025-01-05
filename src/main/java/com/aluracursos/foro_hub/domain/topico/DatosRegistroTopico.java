@@ -1,15 +1,16 @@
 package com.aluracursos.foro_hub.domain.topico;
 
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 
 public record DatosRegistroTopico(
-        @NotNull
+        @NotBlank
         String titulo,
-        @NotNull
+        @NotBlank
         String mensaje,
-        @NotNull
+        @NotBlank
         String autor,
-        @NotNull
+        @NotBlank
         String curso
 ) {
 }
