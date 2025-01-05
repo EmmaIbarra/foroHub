@@ -1,11 +1,11 @@
-CREATE TABLE topicos (
-    id BIGINT NOT NULL AUTO_INCREMENT,
-    titulo VARCHAR(255) NOT NULL,
-    mensaje TEXT NOT NULL,
-    fecha_de_creacion DATETIME NOT NULL,
-    status TINYINT(1) NOT NULL,
-    autor VARCHAR(255) NOT NULL,
-    curso VARCHAR(255) NOT NULL
+create table topicos (
+    id bigint not null auto_increment,
+    titulo varchar(255) not null,
+    mensaje text not null,
+    fecha_de_creacion datetime not null,
+    status tinyint(1) not null,
+    autor varchar(255) not null,
+    curso varchar(255) not null
 
-    PRIMARY KEY(id)
+    primary key(id)
 );
