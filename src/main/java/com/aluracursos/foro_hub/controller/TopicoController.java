@@ -1,5 +1,6 @@
 package com.aluracursos.foro_hub.controller;
 
+import com.aluracursos.foro_hub.domain.ValidacionException;
 import com.aluracursos.foro_hub.domain.topico.*;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
@@ -26,7 +27,7 @@ public class TopicoController {
     public ResponseEntity<DatosRespuestaTopico> registrarTopico(@RequestBody @Valid DatosRegistroTopico datosRegistroTopico,
                                                                 UriComponentsBuilder uriComponentsBuilder) {
         if (topicoRepository.existsByTituloAndMensaje(datosRegistroTopico.titulo(), datosRegistroTopico.mensaje())) {
-            return ResponseEntity.badRequest().body(null);
+            throw new ValidacionException("Ya existe un tópico con el mismo título y/o mensaje.");
         }
 
         Topico topico = topicoRepository.save(new Topico(datosRegistroTopico));
@@ -58,4 +59,19 @@ public class TopicoController {
 //        List<Topico> topicos = topicoRepository.findByCursoAndFechaDeCreacionBetween(curso, inicioAnio, finAnio);
 //        return ResponseEntity.ok(topicos.stream().map(DatosListadoTopico::new).toList());
 //    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<DatosRespuestaTopico> retornaDatosTopico(@PathVariable Long id) {
+        Topico topico = topicoRepository.getReferenceById(id);
+        var datosTopico = new DatosRespuestaTopico(
+                topico.getId(),
+                topico.getTitulo(),
+                topico.getMensaje(),
+                topico.getFechaDeCreacion(),
+                topico.getStatus(),
+                topico.getAutor(),
+                topico.getCurso());
+        return ResponseEntity.ok(datosTopico);
+    }
+
 }
