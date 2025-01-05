@@ -1,5 +1,6 @@
 package com.aluracursos.foro_hub.infra.errores;
 
+import com.aluracursos.foro_hub.domain.TopicoNoEncontradoException;
 import jakarta.persistence.EntityNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -17,22 +18,10 @@ public class TratadorDeErrores {
         return ResponseEntity.badRequest().body(errores);
     }
 
-    @ExceptionHandler(EntityNotFoundException.class)
-    public ResponseEntity tratarError404(EntityNotFoundException e){
-        String mensajePersonalizado = extraerMensaje(e.getMessage());
-        var error = new DatosErrorInterno("Entidad no encontrada", mensajePersonalizado);
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(error);
-    }
-
-    private String extraerMensaje(String mensajeOriginal) {
-        if (mensajeOriginal.contains("Unable to find")) {
-            // Extraer el ID y retornar un mensaje simplificado
-            String[] partes = mensajeOriginal.split(" ");
-            String id = partes[partes.length - 1]; // Última palabra debería ser el ID
-            return "No se encontró el tópico con el ID " + id;
-        }
-        // Si no cumple el patrón esperado, devolver el mensaje original
-        return mensajeOriginal;
+    @ExceptionHandler({EntityNotFoundException.class, TopicoNoEncontradoException.class})
+    public ResponseEntity tratarError404(Exception e) {
+        String mensaje = e.getMessage() != null ? e.getMessage() : "El recurso solicitado no fue encontrado.";
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorRespuesta(mensaje));
     }
 
 
@@ -42,6 +31,9 @@ public class TratadorDeErrores {
         }
     }
 
-    private record DatosErrorInterno(String titulo, String detalle) {}
+
+    public record ErrorRespuesta(String mensaje) {
+    }
+
 
 }
