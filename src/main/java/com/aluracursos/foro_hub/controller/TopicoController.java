@@ -110,4 +110,17 @@ public class TopicoController {
         throw new TopicoNoEncontradoException("El tópico con ID " + id + " no fue encontrado.");
     }
 
+    @DeleteMapping("/{id}")
+    @Transactional
+    public ResponseEntity eliminarTopico(@PathVariable Long id) {
+        Optional<Topico> topicoOpt = topicoRepository.findById(id);
+
+        if (topicoOpt.isPresent()) {
+            topicoRepository.deleteById(id);
+            return ResponseEntity.noContent().build();
+        }
+
+        throw new TopicoNoEncontradoException("El tópico con ID " + id + " no fue encontrado.");
+    }
+
 }
