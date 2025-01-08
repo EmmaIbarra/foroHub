@@ -1,7 +1,11 @@
 package com.aluracursos.foro_hub.controller;
 
+import com.aluracursos.foro_hub.domain.PerfilNoEncontradoException;
 import com.aluracursos.foro_hub.domain.TopicoNoEncontradoException;
+import com.aluracursos.foro_hub.domain.UsuarioNoEncontradoException;
 import com.aluracursos.foro_hub.domain.ValidacionException;
+import com.aluracursos.foro_hub.domain.perfil.DatosPerfil;
+import com.aluracursos.foro_hub.domain.perfil.Perfil;
 import com.aluracursos.foro_hub.domain.usuario.*;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
@@ -98,6 +102,31 @@ public class UsuarioController {
 
         throw new TopicoNoEncontradoException("El usuario con ID " + id + " no fue encontrado.");
     }
+
+    @PostMapping("/{id}/perfiles")
+    @Transactional
+    public ResponseEntity agregarPerfil(@PathVariable Long id, @RequestBody @Valid DatosPerfil datosPerfil) {
+        var usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario con ID " + id + " no encontrado."));
+        Perfil perfil = new Perfil(null, datosPerfil.nombre(), usuario);
+        usuario.agregarPerfil(perfil);
+        return ResponseEntity.ok("Perfil agregado exitosamente.");
+    }
+
+    @DeleteMapping("/{id}/perfiles/{perfilId}")
+    @Transactional
+    public ResponseEntity eliminarPerfil(@PathVariable Long id, @PathVariable Long perfilId) {
+        var usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario con ID " + id + " no encontrado."));
+        var perfil = usuario.getPerfiles().stream()
+                .filter(p -> p.getId().equals(perfilId))
+                .findFirst()
+                .orElseThrow(() -> new PerfilNoEncontradoException("Perfil con ID " + perfilId + " no encontrado."));
+        usuario.eliminarPerfil(perfil);
+        return ResponseEntity.ok("Perfil eliminado exitosamente.");
+    }
+
+
 }
 
 
