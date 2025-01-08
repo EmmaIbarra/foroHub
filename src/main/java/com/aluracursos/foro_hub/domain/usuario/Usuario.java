@@ -2,6 +2,7 @@ package com.aluracursos.foro_hub.domain.usuario;
 
 import com.aluracursos.foro_hub.domain.perfil.Perfil;
 import jakarta.persistence.*;
+import jakarta.validation.Valid;
 import lombok.AllArgsConstructor;
 import lombok.EqualsAndHashCode;
 import lombok.Getter;
@@ -10,6 +11,7 @@ import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -30,6 +32,13 @@ public class Usuario implements UserDetails {
     private String clave;
     @OneToMany(mappedBy = "usuario", cascade = CascadeType.ALL, fetch = FetchType.EAGER)
     private List<Perfil> perfiles;
+
+    public Usuario(DatosRegistroUsuario datosRegistroUsuario) {
+        this.nombre = datosRegistroUsuario.nombre();
+        this.email = datosRegistroUsuario.email();
+        this.clave = datosRegistroUsuario.clave();
+        this.perfiles = new ArrayList<>();
+    }
 
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
@@ -65,4 +74,17 @@ public class Usuario implements UserDetails {
     public boolean isEnabled() {
         return true;
     }
+
+    public void actualizarDatos(DatosActualizarUsuario datosActualizarUsuario) {
+        if (datosActualizarUsuario.nombre() != null) {
+            this.nombre = datosActualizarUsuario.nombre();
+        }
+        if (datosActualizarUsuario.email() != null) {
+            this.email = datosActualizarUsuario.email();
+        }
+        if (datosActualizarUsuario.clave() != null) {
+            this.clave = datosActualizarUsuario.clave();
+        }
+    }
+
 }
