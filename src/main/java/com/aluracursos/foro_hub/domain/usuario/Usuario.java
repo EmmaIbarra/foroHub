@@ -87,4 +87,21 @@ public class Usuario implements UserDetails {
         }
     }
 
+    public void agregarPerfil(Perfil perfil) {
+        if (this.perfiles == null) {
+            this.perfiles = new ArrayList<>();
+        }
+        this.perfiles.add(perfil);
+        perfil.setUsuario(this);
+    }
+
+    public void eliminarPerfil(Perfil perfil) {
+        if (this.perfiles != null) {
+            this.perfiles.remove(perfil);
+            perfil.setUsuario(null);
+        }
+    }
+
+
+
 }
