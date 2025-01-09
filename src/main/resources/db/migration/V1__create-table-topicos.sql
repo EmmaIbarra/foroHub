@@ -5,7 +5,7 @@ create table topicos (
     fecha_de_creacion datetime not null,
     status tinyint(1) not null,
     autor varchar(255) not null,
-    curso varchar(255) not null
+    curso varchar(255) not null,
 
-    primary key(id)
+    primary key (id)
 );
