@@ -3,16 +3,17 @@ package com.aluracursos.foro_hub.controller;
 import com.aluracursos.foro_hub.domain.PerfilNoEncontradoException;
 import com.aluracursos.foro_hub.domain.TopicoNoEncontradoException;
 import com.aluracursos.foro_hub.domain.UsuarioNoEncontradoException;
-import com.aluracursos.foro_hub.domain.ValidacionException;
 import com.aluracursos.foro_hub.domain.perfil.DatosPerfil;
 import com.aluracursos.foro_hub.domain.perfil.Perfil;
 import com.aluracursos.foro_hub.domain.usuario.*;
+import com.aluracursos.foro_hub.infra.errores.TratadorDeErrores;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -31,10 +32,11 @@ public class UsuarioController {
     }
 
     @PostMapping
-    public ResponseEntity<DatosRespuestaUsuario> registrarUsuario(@RequestBody @Valid DatosRegistroUsuario datosRegistroUsuario,
+    public ResponseEntity<?> registrarUsuario(@RequestBody @Valid DatosRegistroUsuario datosRegistroUsuario,
                                                                   UriComponentsBuilder uriComponentsBuilder) {
         if (usuarioRepository.existsByEmail(datosRegistroUsuario.email())) {
-            throw new ValidacionException("Ya existe un usuario con el mismo email.");
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(new TratadorDeErrores.ErrorRespuesta("Ya existe un usuario con el mismo email."));
         }
 
         Usuario usuario = usuarioRepository.save(new Usuario(datosRegistroUsuario));
