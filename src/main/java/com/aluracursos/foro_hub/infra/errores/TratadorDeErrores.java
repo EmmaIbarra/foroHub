@@ -34,11 +34,6 @@ public class TratadorDeErrores {
                 .body(new ErrorRespuesta(e.getMessage()));
     }
 
-    @ExceptionHandler(Exception.class)
-    public ResponseEntity<ErrorRespuesta> manejarErroresGenerales(Exception e) {
-        String mensaje = e.getMessage() != null ? e.getMessage() : "Ha ocurrido un error inesperado.";
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrorRespuesta(mensaje));
-    }
 
     private record DatosErrorValidacion(String campo, String error) {
         public DatosErrorValidacion(FieldError error) {
