@@ -2,6 +2,7 @@ package com.aluracursos.foro_hub.controller;
 
 import com.aluracursos.foro_hub.domain.topico.*;
 import com.aluracursos.foro_hub.infra.errores.TratadorDeErrores;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
 import jakarta.validation.ValidationException;
@@ -73,12 +74,12 @@ public class TopicoController {
             return ResponseEntity.ok(datosTopico);
         }
 
-        throw new ValidationException("El tópico con ID " + id + " no fue encontrado.");
+        throw new EntityNotFoundException("El tópico con ID " + id + " no fue encontrado.");
     }
 
     @PutMapping("/{id}")
     @Transactional
-    public ResponseEntity<DatosRespuestaTopico> actualizarTopico(@PathVariable Long id,
+    public ResponseEntity<?> actualizarTopico(@PathVariable Long id,
                                                                  @RequestBody @Valid
                                                                  DatosActualizarTopico datosActualizarTopico) {
         Optional<Topico> topicoOpt = topicoRepository.findById(id);
@@ -89,9 +90,8 @@ public class TopicoController {
             boolean mensajeDuplicado = topicoRepository.existsByMensajeAndIdNot(datosActualizarTopico.mensaje(), id);
 
             if (tituloDuplicado || mensajeDuplicado) {
-                String mensajeError = "Ya existe un tópico con el mismo " +
-                        (tituloDuplicado ? "título" : "mensaje") + ".";
-                throw new ValidationException(mensajeError);
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                        .body(new TratadorDeErrores.ErrorRespuesta("Ya existe un tópico con el mismo título y mensaje."));
             }
             topico.actualizarDatos(datosActualizarTopico);
             return ResponseEntity.ok(new DatosRespuestaTopico(
@@ -105,7 +105,7 @@ public class TopicoController {
             ));
         }
 
-        throw new ValidationException("El tópico con ID " + id + " no fue encontrado.");
+        throw new EntityNotFoundException("El tópico con ID " + id + " no fue encontrado.");
     }
 
     @DeleteMapping("/{id}")
@@ -118,7 +118,7 @@ public class TopicoController {
             return ResponseEntity.noContent().build();
         }
 
-        throw new ValidationException("El tópico con ID " + id + " no fue encontrado.");
+        throw new EntityNotFoundException("El tópico con ID " + id + " no fue encontrado.");
     }
 
 }
