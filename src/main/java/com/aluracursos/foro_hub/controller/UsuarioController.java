@@ -1,14 +1,12 @@
 package com.aluracursos.foro_hub.controller;
 
-import com.aluracursos.foro_hub.domain.PerfilNoEncontradoException;
-import com.aluracursos.foro_hub.domain.TopicoNoEncontradoException;
-import com.aluracursos.foro_hub.domain.UsuarioNoEncontradoException;
 import com.aluracursos.foro_hub.domain.perfil.DatosPerfil;
 import com.aluracursos.foro_hub.domain.perfil.Perfil;
 import com.aluracursos.foro_hub.domain.usuario.*;
 import com.aluracursos.foro_hub.infra.errores.TratadorDeErrores;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
+import jakarta.validation.ValidationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -70,7 +68,7 @@ public class UsuarioController {
             return ResponseEntity.ok(datosUsuario);
         }
 
-        throw new TopicoNoEncontradoException("El usuario con ID " + id + " no fue encontrado.");
+        throw new ValidationException("El usuario con ID " + id + " no fue encontrado.");
     }
 
     @PutMapping("/{id}")
@@ -81,6 +79,11 @@ public class UsuarioController {
 
         if (usuarioOpt.isPresent()) {
             Usuario usuario = usuarioOpt.get();
+            boolean emailDuplicado = usuarioRepository.existsByEmailAndIdNot(datosActualizarUsuario.email(), id);
+
+            if (emailDuplicado) {
+                throw new ValidationException("Ya existe un usuario registrado con el email: " + datosActualizarUsuario.email());
+            }
             usuario.actualizarDatos(datosActualizarUsuario);
             return ResponseEntity.ok(new DatosRespuestaUsuario(
                     usuario.getId(),
@@ -89,7 +92,7 @@ public class UsuarioController {
             ));
         }
 
-        throw new TopicoNoEncontradoException("El usuario con ID " + id + " no fue encontrado.");
+        throw new ValidationException("El usuario con ID " + id + " no fue encontrado.");
     }
 
     @DeleteMapping("/{id}")
@@ -102,14 +105,14 @@ public class UsuarioController {
             return ResponseEntity.noContent().build();
         }
 
-        throw new TopicoNoEncontradoException("El usuario con ID " + id + " no fue encontrado.");
+        throw new ValidationException("El usuario con ID " + id + " no fue encontrado.");
     }
 
     @PostMapping("/{id}/perfiles")
     @Transactional
     public ResponseEntity agregarPerfil(@PathVariable Long id, @RequestBody @Valid DatosPerfil datosPerfil) {
         var usuario = usuarioRepository.findById(id)
-                .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario con ID " + id + " no encontrado."));
+                .orElseThrow(() -> new ValidationException("Usuario con ID " + id + " no encontrado."));
         Perfil perfil = new Perfil(null, datosPerfil.nombre(), usuario);
         usuario.agregarPerfil(perfil);
         return ResponseEntity.ok("Perfil agregado exitosamente.");
@@ -119,11 +122,11 @@ public class UsuarioController {
     @Transactional
     public ResponseEntity eliminarPerfil(@PathVariable Long id, @PathVariable Long perfilId) {
         var usuario = usuarioRepository.findById(id)
-                .orElseThrow(() -> new UsuarioNoEncontradoException("Usuario con ID " + id + " no encontrado."));
+                .orElseThrow(() -> new ValidationException("Usuario con ID " + id + " no encontrado."));
         var perfil = usuario.getPerfiles().stream()
                 .filter(p -> p.getId().equals(perfilId))
                 .findFirst()
-                .orElseThrow(() -> new PerfilNoEncontradoException("Perfil con ID " + perfilId + " no encontrado."));
+                .orElseThrow(() -> new ValidationException("Perfil con ID " + perfilId + " no encontrado."));
         usuario.eliminarPerfil(perfil);
         return ResponseEntity.ok("Perfil eliminado exitosamente.");
     }
