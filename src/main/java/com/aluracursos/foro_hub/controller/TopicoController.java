@@ -1,15 +1,16 @@
 package com.aluracursos.foro_hub.controller;
 
-import com.aluracursos.foro_hub.domain.TopicoNoEncontradoException;
-import com.aluracursos.foro_hub.domain.ValidacionException;
 import com.aluracursos.foro_hub.domain.topico.*;
+import com.aluracursos.foro_hub.infra.errores.TratadorDeErrores;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
+import jakarta.validation.ValidationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.web.PageableDefault;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
@@ -28,10 +29,11 @@ public class TopicoController {
     }
 
     @PostMapping
-    public ResponseEntity<DatosRespuestaTopico> registrarTopico(@RequestBody @Valid DatosRegistroTopico datosRegistroTopico,
+    public ResponseEntity<?> registrarTopico(@RequestBody @Valid DatosRegistroTopico datosRegistroTopico,
                                                                 UriComponentsBuilder uriComponentsBuilder) {
         if (topicoRepository.existsByTituloAndMensaje(datosRegistroTopico.titulo(), datosRegistroTopico.mensaje())) {
-            throw new ValidacionException("Ya existe un tópico con el mismo título y/o mensaje.");
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body(new TratadorDeErrores.ErrorRespuesta("Ya existe un tópico con el mismo título y mensaje."));
         }
 
         Topico topico = topicoRepository.save(new Topico(datosRegistroTopico));
@@ -71,7 +73,7 @@ public class TopicoController {
             return ResponseEntity.ok(datosTopico);
         }
 
-        throw new TopicoNoEncontradoException("El tópico con ID " + id + " no fue encontrado.");
+        throw new ValidationException("El tópico con ID " + id + " no fue encontrado.");
     }
 
     @PutMapping("/{id}")
@@ -83,6 +85,14 @@ public class TopicoController {
 
         if (topicoOpt.isPresent()) {
             Topico topico = topicoOpt.get();
+            boolean tituloDuplicado = topicoRepository.existsByTituloAndIdNot(datosActualizarTopico.titulo(), id);
+            boolean mensajeDuplicado = topicoRepository.existsByMensajeAndIdNot(datosActualizarTopico.mensaje(), id);
+
+            if (tituloDuplicado || mensajeDuplicado) {
+                String mensajeError = "Ya existe un tópico con el mismo " +
+                        (tituloDuplicado ? "título" : "mensaje") + ".";
+                throw new ValidationException(mensajeError);
+            }
             topico.actualizarDatos(datosActualizarTopico);
             return ResponseEntity.ok(new DatosRespuestaTopico(
                     topico.getId(),
@@ -95,7 +105,7 @@ public class TopicoController {
             ));
         }
 
-        throw new TopicoNoEncontradoException("El tópico con ID " + id + " no fue encontrado.");
+        throw new ValidationException("El tópico con ID " + id + " no fue encontrado.");
     }
 
     @DeleteMapping("/{id}")
@@ -108,7 +118,7 @@ public class TopicoController {
             return ResponseEntity.noContent().build();
         }
 
-        throw new TopicoNoEncontradoException("El tópico con ID " + id + " no fue encontrado.");
+        throw new ValidationException("El tópico con ID " + id + " no fue encontrado.");
     }
 
 }
