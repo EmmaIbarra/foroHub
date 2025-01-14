@@ -2,11 +2,12 @@ package com.aluracursos.foro_hub.controller;
 
 import com.aluracursos.foro_hub.domain.perfil.DatosPerfil;
 import com.aluracursos.foro_hub.domain.perfil.Perfil;
+import com.aluracursos.foro_hub.domain.perfil.PerfilRepository;
 import com.aluracursos.foro_hub.domain.usuario.*;
 import com.aluracursos.foro_hub.infra.errores.TratadorDeErrores;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.transaction.Transactional;
 import jakarta.validation.Valid;
-import jakarta.validation.ValidationException;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -17,6 +18,7 @@ import org.springframework.web.bind.annotation.*;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.net.URI;
+import java.util.List;
 import java.util.Optional;
 
 @RestController
@@ -24,9 +26,11 @@ import java.util.Optional;
 public class UsuarioController {
 
     private final UsuarioRepository usuarioRepository;
+    private final PerfilRepository perfilRepository;
 
-    public UsuarioController(UsuarioRepository usuarioRepository) {
+    public UsuarioController(UsuarioRepository usuarioRepository, PerfilRepository perfilRepository) {
         this.usuarioRepository = usuarioRepository;
+        this.perfilRepository = perfilRepository;
     }
 
     @PostMapping
@@ -68,12 +72,12 @@ public class UsuarioController {
             return ResponseEntity.ok(datosUsuario);
         }
 
-        throw new ValidationException("El usuario con ID " + id + " no fue encontrado.");
+        throw new EntityNotFoundException("El usuario con ID " + id + " no fue encontrado.");
     }
 
     @PutMapping("/{id}")
     @Transactional
-    public ResponseEntity<DatosRespuestaUsuario> actualizarUsuario(@PathVariable Long id,
+    public ResponseEntity<?> actualizarUsuario(@PathVariable Long id,
                                                                    @RequestBody @Valid DatosActualizarUsuario datosActualizarUsuario) {
         Optional<Usuario> usuarioOpt = usuarioRepository.findById(id);
 
@@ -82,7 +86,8 @@ public class UsuarioController {
             boolean emailDuplicado = usuarioRepository.existsByEmailAndIdNot(datosActualizarUsuario.email(), id);
 
             if (emailDuplicado) {
-                throw new ValidationException("Ya existe un usuario registrado con el email: " + datosActualizarUsuario.email());
+                return ResponseEntity.status(HttpStatus.CONFLICT)
+                        .body(new TratadorDeErrores.ErrorRespuesta("Ya existe un usuario registrado con el email: " + datosActualizarUsuario.email()));
             }
             usuario.actualizarDatos(datosActualizarUsuario);
             return ResponseEntity.ok(new DatosRespuestaUsuario(
@@ -92,7 +97,7 @@ public class UsuarioController {
             ));
         }
 
-        throw new ValidationException("El usuario con ID " + id + " no fue encontrado.");
+        throw new EntityNotFoundException("El usuario con ID " + id + " no fue encontrado.");
     }
 
     @DeleteMapping("/{id}")
@@ -105,14 +110,14 @@ public class UsuarioController {
             return ResponseEntity.noContent().build();
         }
 
-        throw new ValidationException("El usuario con ID " + id + " no fue encontrado.");
+        throw new EntityNotFoundException("El usuario con ID " + id + " no fue encontrado.");
     }
 
     @PostMapping("/{id}/perfiles")
     @Transactional
     public ResponseEntity agregarPerfil(@PathVariable Long id, @RequestBody @Valid DatosPerfil datosPerfil) {
         var usuario = usuarioRepository.findById(id)
-                .orElseThrow(() -> new ValidationException("Usuario con ID " + id + " no encontrado."));
+                .orElseThrow(() -> new EntityNotFoundException("Usuario con ID " + id + " no encontrado."));
         Perfil perfil = new Perfil(null, datosPerfil.nombre(), usuario);
         usuario.agregarPerfil(perfil);
         return ResponseEntity.ok("Perfil agregado exitosamente.");
@@ -122,13 +127,27 @@ public class UsuarioController {
     @Transactional
     public ResponseEntity eliminarPerfil(@PathVariable Long id, @PathVariable Long perfilId) {
         var usuario = usuarioRepository.findById(id)
-                .orElseThrow(() -> new ValidationException("Usuario con ID " + id + " no encontrado."));
+                .orElseThrow(() -> new EntityNotFoundException("Usuario con ID " + id + " no encontrado."));
         var perfil = usuario.getPerfiles().stream()
                 .filter(p -> p.getId().equals(perfilId))
                 .findFirst()
-                .orElseThrow(() -> new ValidationException("Perfil con ID " + perfilId + " no encontrado."));
+                .orElseThrow(() -> new EntityNotFoundException("Perfil con ID " + perfilId + " no encontrado."));
+
         usuario.eliminarPerfil(perfil);
+        perfilRepository.delete(perfil);
+
         return ResponseEntity.ok("Perfil eliminado exitosamente.");
+    }
+
+    @GetMapping("/{id}/perfiles")
+    public ResponseEntity<List<DatosPerfil>> listarPerfiles(@PathVariable Long id) {
+        var usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new EntityNotFoundException("Usuario con ID " + id + " no encontrado."));
+        var perfiles = usuario.getPerfiles()
+                .stream()
+                .map(perfil -> new DatosPerfil(perfil.getId(), perfil.getNombre()))
+                .toList();
+        return ResponseEntity.ok(perfiles);
     }
 
 
